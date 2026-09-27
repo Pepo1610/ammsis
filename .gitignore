@@ -1,0 +1,27 @@
+# File generati da AMMSIS durante il setup
+Vagrantfile
+site.yml
+maketar.sh
+scelte.txt
+roles/
+group_vars/
+host_vars/
+
+# Archivi di consegna
+*.tar.gz
+*.tgz
+esame/
+
+# Vagrant
+.vagrant/
+
+# Editor
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,39 @@
+---
+- name: Assicura che ou=Groups e ou=People siano gia' stati importati
+  meta: flush_handlers
+
+- name: Verifica se il gruppo esiste gia'
+  ansible.builtin.command: >
+    ldapsearch -x -H ldap://{{ ldap_server_ip }}
+    -b "cn={{ group_name }},ou=Groups,{{ ldap_base_dn }}"
+    -s base
+  register: group_check
+  failed_when: false
+  changed_when: false
+
+- name: Creazione gruppo LDAP
+  ansible.builtin.command: >
+    ldapadd -x -H ldap://{{ ldap_server_ip }}
+    -D "{{ ldap_admin_dn }}" -w "{{ ldap_admin_password }}"
+  args:
+    stdin: |
+      dn: cn={{ group_name }},ou=Groups,{{ ldap_base_dn }}
+      objectClass: top
+      objectClass: posixGroup
+      cn: {{ group_name }}
+      gidNumber: {{ group_gid }}
+  when: group_check.rc != 0
+
+- name: Aggiungi memberUid al gruppo (se specificati)
+  ansible.builtin.command: >
+    ldapmodify -x -H ldap://{{ ldap_server_ip }}
+    -D "{{ ldap_admin_dn }}" -w "{{ ldap_admin_password }}"
+  args:
+    stdin: |
+      dn: cn={{ group_name }},ou=Groups,{{ ldap_base_dn }}
+      changetype: modify
+      add: memberUid
+      memberUid: {{ item }}
+  loop: "{{ group_members | default([]) }}"
+  when: group_members is defined and group_members | length > 0
+  failed_when: false

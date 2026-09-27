@@ -1,0 +1,36 @@
+---
+# =============================================================================
+# create_user — variabili del componente
+# Utente locale NON-LDAP (account di sistema gestito da /etc/passwd, /etc/shadow)
+# =============================================================================
+
+# --- Dati principali dell'utente ---
+new_user_name: "<NOME UTENTE RICHIESTO>"
+new_user_comment: "<DESCRIZIONE UTENTE (campo GECOS), es. Nome Cognome>"
+new_user_shell: "/bin/bash"
+new_user_home: "/home/{{ new_user_name }}"
+new_user_create_home: true
+
+# UID esplicito (facoltativo). Lasciare vuoto ("") per farlo assegnare
+# automaticamente dal sistema.
+new_user_uid: ""
+
+# --- Gruppo primario ---
+# Se il gruppo non esiste viene creato. Lasciare new_user_gid vuoto ("")
+# per farlo assegnare automaticamente.
+new_user_group: "<NOME GRUPPO PRIMARIO RICHIESTO>"
+new_user_gid: ""
+
+# --- Gruppi secondari (facoltativo) ---
+# Esempio: ["sudo", "printers"]. Lasciare lista vuota se non servono.
+new_user_groups: []
+
+# --- Password ---
+# Password in chiaro: viene cifrata al volo nel task con il filtro Jinja2
+# `password_hash('sha512')`, non va mai salvata già cifrata qui.
+new_user_password: "<PASSWORD IN CHIARO RICHIESTA>"
+
+# --- Permessi sudo mirati (facoltativo) ---
+new_user_sudo_enabled: false
+new_user_sudo_commands: "ALL"     # es. "/usr/bin/systemctl restart printd"
+new_user_sudo_nopasswd: true

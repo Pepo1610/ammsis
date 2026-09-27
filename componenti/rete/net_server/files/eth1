@@ -1,0 +1,7 @@
+auto eth1
+iface eth1 inet static
+    address <IP DEL SERVER>
+    netmask <SUBNET DEL SERVER>
+    up ip r add <RETE + SUBNET DEL CLIENT> via <INDIRIZZO ROUTER CHE SI AFFACCIA SU RERE SERVER>
+# V x 2 ip netmask corretti
+# V x 2 rotta statica se necessaria

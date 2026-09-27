@@ -1,0 +1,35 @@
+---
+- name: Deploy file credenziali admin LDAP
+  ansible.builtin.copy:
+    dest: "{{ ldap_cred_file_path }}"
+    content: "{{ ldap_cred_admin_user }}\n{{ ldap_cred_admin_password }}\n"
+    owner: root
+    group: root
+    mode: "0400"
+
+- name: Crea directory protetta per configurazione LDAP admin
+  ansible.builtin.file:
+    path: /etc/ldap
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+
+- name: Configura variabili d'ambiente LDAP admin (solo root)
+  ansible.builtin.copy:
+    dest: /etc/ldap/ldap_admin_env.sh
+    content: |
+      export LDAP_ADMIN_USER="{{ ldap_cred_admin_user }}"
+      export LDAP_PASSWD="{{ ldap_cred_admin_password }}"
+    owner: root
+    group: root
+    mode: "0400"
+
+- name: Carica variabili LDAP admin nella shell di root
+  ansible.builtin.lineinfile:
+    path: /root/.bashrc
+    line: '[ -r /etc/ldap/ldap_admin_env.sh ] && . /etc/ldap/ldap_admin_env.sh'
+    create: true
+    owner: root
+    group: root
+    mode: "0600"

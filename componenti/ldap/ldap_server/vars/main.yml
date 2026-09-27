@@ -1,0 +1,23 @@
+---
+slapd:
+  - question: slapd/no_configuration
+    value: false
+    vtype: boolean
+  - question: slapd/domain
+    value: "{{ ldap_domain }}"
+    vtype: string
+  - question: shared/organization
+    value: "{{ ldap_org }}"
+    vtype: string
+  - question: slapd/password1
+    value: "{{ ldap_admin_password }}"
+    vtype: string
+  - question: slapd/password2
+    value: "{{ ldap_admin_password }}"
+    vtype: string
+  - question: slapd/purge_database
+    value: true
+    vtype: boolean
+  - question: slapd/move_old_database
+    value: true
+    vtype: boolean

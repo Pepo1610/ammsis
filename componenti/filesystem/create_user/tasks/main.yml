@@ -1,0 +1,38 @@
+---
+- name: Crea il gruppo primario dell'utente (se non esiste)
+  ansible.builtin.group:
+    name: "{{ new_user_group }}"
+    gid: "{{ new_user_gid | default(omit, true) }}"
+    state: present
+  when: new_user_group | length > 0
+
+- name: Crea eventuali gruppi secondari richiesti (se non esistono)
+  ansible.builtin.group:
+    name: "{{ item }}"
+    state: present
+  loop: "{{ new_user_groups }}"
+  when: new_user_groups | length > 0
+
+- name: Crea l'utente locale
+  ansible.builtin.user:
+    name: "{{ new_user_name }}"
+    comment: "{{ new_user_comment | default(new_user_name) }}"
+    uid: "{{ new_user_uid | default(omit, true) }}"
+    group: "{{ new_user_group }}"
+    groups: "{{ new_user_groups | join(',') if new_user_groups | length > 0 else omit }}"
+    append: true
+    shell: "{{ new_user_shell }}"
+    home: "{{ new_user_home }}"
+    create_home: "{{ new_user_create_home }}"
+    password: "{{ new_user_password | password_hash('sha512') }}"
+    state: present
+
+- name: Concede permessi sudo mirati (se richiesto)
+  ansible.builtin.template:
+    src: sudoers_user.j2
+    dest: "/etc/sudoers.d/{{ new_user_name }}"
+    owner: root
+    group: root
+    mode: '0440'
+    validate: "visudo -cf %s"
+  when: new_user_sudo_enabled | bool

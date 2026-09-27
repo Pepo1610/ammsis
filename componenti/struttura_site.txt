@@ -1,0 +1,50 @@
+- name: Configurazione comune a tutte le VM
+  hosts: all
+  become: true
+  roles:
+    - common            # fix auto eth0
+#    - proxy_lab         # ovviamente solo se in laboratorio ingegneria
+
+- name: Router, rete e servizi di rete
+  hosts: R1
+  become: true
+  roles:
+    - net_rou1          
+    - net_dhcp_server   
+    - net_ipforward     
+    - ldap_utils
+    - ldap_creds
+    - ldap_server
+    - create_ldap_user  
+
+- name: rete_server
+  hosts: SX # dove X è il numero specifico del server
+  become: true
+  roles:
+    - net_srvX
+
+- name: 
+  hosts: S*
+  become: true
+  roles:
+    - ldap_utils        # interrogazione in lettura/scrittura della directory
+    - ldap_creds        # credenziali di bind in /etc/ldap.admin.cred
+    - rsyslog           # ricezione remota di logs
+    - create_dir        # /var/spool/printjobs/pending
+    - snmp_agent        # espone la lunghezza della coda
+    - sudoers           # non posso dar per scontato che Debian-snmp abbia accesso a un determinato file o cartella
+    - ssh_keys          # root si connette all'altro server (se richiesto e presente più di uno)
+    - ssh_authkeys      # root e' bersaglio della connessione dall'altro
+    - at_atd            # pianificazione della copia di ridondanza
+    - install_script_server # per installazione di uno script dentro al server
+    - systemd_service   # per far si che uno script sia avviato al boot e sempre riavviato
+    - cron              # per lanciare uno script periodicamente
+
+- name: Client - rete
+  hosts: C*
+  become: true
+  roles:
+    - net_dhcp_client
+    - ldap_login        # login centralizzato sui soli Client
+    - snmp_manager      # snmpget verso i printserver
+    - install_script_client # oer installazione di uno script dentro al client

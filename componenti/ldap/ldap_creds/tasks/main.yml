@@ -1,0 +1,8 @@
+---
+- name: Deploy LDAP admin credentials from template
+  ansible.builtin.template:
+    src: ldap.admin.cred.j2
+    dest: /etc/ldap.admin.cred
+    owner: root
+    group: root
+    mode: "400"

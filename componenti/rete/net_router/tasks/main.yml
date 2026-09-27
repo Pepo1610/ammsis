@@ -1,0 +1,13 @@
+---
+- name: Copy a new configuration "interfaces" files into place, after passing validation with ifup
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "/etc/network/interfaces.d/{{ item }}"
+    owner: root
+    group: root
+    mode: '0644'
+    validate: /usr/sbin/ifup --no-act -i %s  "{{ item }}"
+  loop:
+    - eth1
+    - eth2
+  notify: Restart Networking

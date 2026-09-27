@@ -1,0 +1,15 @@
+---
+# Queste variabili vengono sovrascritte dallo script ammsis.sh
+# durante la generazione dell'ambiente.
+# ldap_server_ip, ldap_admin_dn, ldap_admin_password, ldap_base_dn
+# provengono da group_vars/all.yml o host_vars.
+user_uid: esame
+user_cn: Esame
+user_sn: Esame
+user_uidnumber: '10000'
+user_gidnumber: '10000'
+user_group: esame
+user_home: "/home/esame"
+user_shell: /bin/bash
+user_pass: password
+user_description: 'utente di esempio'

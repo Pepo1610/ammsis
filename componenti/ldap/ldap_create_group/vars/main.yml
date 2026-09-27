@@ -1,0 +1,6 @@
+---
+# Queste variabili vengono sovrascritte dallo script ammsis.sh
+# durante la generazione dell'ambiente
+group_name: "esempio"
+group_gid: "10000"
+group_members: []

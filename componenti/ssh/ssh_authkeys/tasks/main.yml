@@ -1,0 +1,6 @@
+- name: Copy the public key to the authorized_keys file for user {{ ssh_user }} # devono esistere utente e home
+  ansible.builtin.authorized_key:
+    user: "{{ ssh_user }}"
+    state: present
+    key: "{{ lookup('file', 'id_rsa.pub') }}"
+

@@ -1,0 +1,14 @@
+---
+- name: Copy files in sbin
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: <DESTINAZIONE DELLO SCRIPT>
+    owner: <PROPRIETARIO SCRIPT>
+    group: <GRUPPO PROPRIETARIO SCRIPT>
+    mode: "<PERMESSI>"
+  loop:
+    - "<NOME SCRIPT DA IMPORTARE>"
+
+#ovviamente, se ci sono script diversi, dovrai scrivere più task diverse, ognuna con le caratteristiche proprie dello script
+
+# V x 5 filenames owner group mode corretti

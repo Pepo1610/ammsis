@@ -1,0 +1,6 @@
+---
+- name: Install LDAP client tools
+  ansible.builtin.apt:
+    name: ldap-utils
+    state: present
+    update_cache: true

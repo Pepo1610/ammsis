@@ -1,0 +1,5 @@
+auto eth1
+iface eth1 inet static
+    address <INDIRIZZO ROUTER x ETH1>
+    netmask <SUBNET PER ETH1>
+# V x 2 ip netmask corretti

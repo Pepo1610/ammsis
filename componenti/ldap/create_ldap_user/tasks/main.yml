@@ -1,0 +1,30 @@
+---
+- name: Assicura che ou=Groups e ou=People siano gia' stati importati
+  meta: flush_handlers
+
+- name: Creazione utente LDAP
+  ansible.builtin.command: >
+    ldapadd -x -H ldap://{{ ldap_server_ip }}
+    -D "{{ ldap_admin_dn }}" -w "{{ ldap_admin_password }}"
+  args:
+    stdin: |
+      dn: uid={{ user_uid }},ou=People,{{ ldap_base_dn }}
+      objectClass: inetOrgPerson
+      objectClass: posixAccount
+      objectClass: shadowAccount
+      cn: {{ user_cn }}
+      sn: {{ user_sn }}
+      uid: {{ user_uid }}
+      uidNumber: {{ user_uidnumber }}
+      gidNumber: {{ user_gidnumber }}
+      homeDirectory: {{ user_home }}
+      loginShell: {{ user_shell }}
+      description: {{ user_description }}
+      userPassword: {CRYPT}x
+
+- name: Imposta la password
+  ansible.builtin.command: >
+    ldappasswd -x -H ldap://{{ ldap_server_ip }}
+    -D "{{ ldap_admin_dn }}" -w "{{ ldap_admin_password }}"
+    -s {{ user_pass }}
+    uid={{ user_uid }},ou=People,{{ ldap_base_dn }}

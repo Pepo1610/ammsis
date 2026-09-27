@@ -1,0 +1,15 @@
+---
+- name: Deploy cron loop wrapper script
+  ansible.builtin.copy:
+    dest: "{{ cron_loop_script_path }}"
+    content: |
+      #!/bin/bash
+
+      while true ;
+      do
+      	{{ cron_loop_target_command }}
+      	sleep {{ cron_loop_seconds }}
+      done
+    owner: root
+    group: root
+    mode: "0755"

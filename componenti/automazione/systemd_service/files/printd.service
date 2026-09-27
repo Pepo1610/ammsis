@@ -1,0 +1,16 @@
+[Unit]
+Description=Printserver queue daemon
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/sbin/printd.sh
+Restart=always
+RestartSec=5
+User=root
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+# V x 3 presente e type comando corretti

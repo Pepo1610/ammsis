@@ -1,0 +1,31 @@
+---
+- name: Install debconf and debconf-utils
+  ansible.builtin.apt:
+    name:
+      - debconf
+      - debconf-utils
+    update_cache: true
+
+- name: Setup debconf for slapd
+  ansible.builtin.debconf:
+    name: slapd
+    question: "{{ item.question }}"
+    value: "{{ item.value }}"
+    vtype: "{{ item.vtype }}"
+  loop: "{{ slapd }}"
+  notify: Restart slapd
+
+- name: Install slapd
+  ansible.builtin.apt:
+    name: slapd
+    update_cache: true
+
+- name: Deploy ldif files from templates
+  ansible.builtin.template:
+    src: "{{ item }}"
+    dest: "/tmp/{{ item | regex_replace('\\.j2$', '') }}"
+    mode: "644"
+  loop:
+    - groups.ldif.j2
+    - people.ldif.j2
+  notify: Import ldif files

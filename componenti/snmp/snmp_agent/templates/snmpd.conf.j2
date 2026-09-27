@@ -1,0 +1,9 @@
+agentAddress udp:161
+view {{ snmp_view_name | default('all') }} included .1
+rocommunity {{ snmp_community | default('public') }} default -V {{ snmp_view_name | default('all') }}
+
+{% for ext in snmp_extends | default([]) %}
+# {{ ext.name }}
+# query: snmpget -Oqv -v 1 -c {{ snmp_community | default('public') }} $IP NET-SNMP-EXTEND-MIB::nsExtendOutputFull.\"{{ ext.name }}\"
+extend {{ ext.name }} {{ ext.command }}
+{% endfor %}

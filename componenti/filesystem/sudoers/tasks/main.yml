@@ -1,0 +1,7 @@
+---
+- name: script privilegiato
+  ansible.builtin.lineinfile:
+    path: /etc/sudoers
+    state: present
+    line: 'Debian-snmp ALL=(root) NOPASSWD: <COMANDO SPECIFICO DELL' ESERCIZIO>'
+

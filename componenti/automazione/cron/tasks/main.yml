@@ -1,0 +1,9 @@
+---
+- name: Setup cron
+  ansible.builtin.cron:
+    name: "<NOME DEL COMANDO DA ESEGUITE PERIODICAMENTE>"
+    # qui i dettagli sul tempo dipendono 
+    minute: "0"
+    hour: "3"
+    user: "<UTENTE A NOME DEL QUALE IL COMANDO DEVE ESEGUIRE>"
+    job: "<PATH ASSOLUTO DEL COMANDO DA GESTIRE CON CRON>"

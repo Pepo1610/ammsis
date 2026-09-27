@@ -1,0 +1,43 @@
+---
+- name: Ensure home directory for user {{ ssh_user }} exists
+  ansible.builtin.file:
+    path: "{{ home_dir }}"
+    state: directory
+    owner: "{{ ssh_user }}"
+    group: "{{ ssh_user }}"
+    mode: '0750'
+
+- name: Ensure .ssh directory exists for user {{ ssh_user }}
+  ansible.builtin.file:
+    path: "{{ home_dir }}/.ssh"
+    state: directory
+    owner: "{{ ssh_user }}"
+    group: "{{ ssh_user }}"
+    mode: '0700'
+
+- name: Copy private key for user {{ ssh_user }}
+  ansible.builtin.copy:
+    src: id_rsa
+    dest: "{{ home_dir }}/.ssh/id_rsa"
+    mode: '0600'
+    owner: "{{ ssh_user }}"
+    group: "{{ ssh_user }}"
+
+- name: Copy public key for user {{ ssh_user }}
+  ansible.builtin.copy:
+    src: id_rsa.pub
+    dest: "{{ home_dir }}/.ssh/id_rsa.pub"
+    mode: '0644'
+    owner: "{{ ssh_user }}"
+    group: "{{ ssh_user }}"
+
+- name: Accept the other printserver host key without prompting
+  ansible.builtin.copy:
+    content: |
+      Host *
+          StrictHostKeyChecking no
+          UserKnownHostsFile /dev/null
+    dest: "{{ home_dir }}/.ssh/config"
+    mode: '0600'
+    owner: "{{ ssh_user }}"
+    group: "{{ ssh_user }}"

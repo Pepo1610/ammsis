@@ -1,0 +1,8 @@
+---
+- name: Ensure a directory exists
+  ansible.builtin.file:
+    path: <PATH ASSOLUTO RICHIESTO>
+    state: directory
+    owner: <OWNERSHIP RICHIESTA>
+    group: <GRUPPO RICHIESTO>
+    mode: '<PERMESSI RICHIESTI>'

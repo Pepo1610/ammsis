@@ -1,0 +1,6 @@
+---
+- name: Install at daemon and tools
+  ansible.builtin.apt:
+    name: at
+    state: present
+    update_cache: true
