@@ -67,7 +67,7 @@ print_topology_summary() {
 run_interactive_wizard() {
     echo -e "${CLR_BOLD}Benvenuto nel wizard AMMSIS v${AMMSIS_VERSION}${CLR_RESET}\n"
     
-    collect_routers
+    collect_routers ROUTER_IPS ROUTER_NETS ROUTER_IFACES ROUTER_IFACE_IDS
     
     if prompt_confirm "Vuoi abilitare proxy_lab su tutti i nodi?"; then
         USE_PROXY_LAB=true
