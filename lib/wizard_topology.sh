@@ -5,6 +5,27 @@
 
 _COLLECT_COUNT=0
 
+# ---------------------------------------------------------------------------
+# Chiede all'utente il prefisso CIDR della subnet per una rete (client/server)
+# e popola le variabili CIDR e MASK corrispondenti.
+# Argomenti: $1 = tipo ("client"/"server"), $2 = nameref CIDR, $3 = nameref MASK
+# ---------------------------------------------------------------------------
+_collect_subnet() {
+    local node_type="$1"
+    local -n cidr_ref="$2"
+    local -n mask_ref="$3"
+
+    local cidr_val
+    while true; do
+        prompt_input "Prefisso CIDR per la rete dei ${node_type} (es. 24)" cidr_val "24"
+        if validate_cidr "$cidr_val"; then
+            break
+        fi
+    done
+    cidr_ref="$cidr_val"
+    mask_ref="$(cidr_to_netmask "$cidr_val")"
+}
+
 collect_routers() {
     local -n ips_ref="$1"
     local -n nets_ref="$2"

@@ -83,8 +83,17 @@ run_interactive_wizard() {
         else
             collect_dhcp_per_router "client" ROUTER_DHCP_CLIENT_NETWORK ROUTER_DHCP_CLIENT_NET_ADDR ROUTER_DHCP_CLIENT_RANGE_START ROUTER_DHCP_CLIENT_RANGE_END
         fi
+        # Ricava la subnet CIDR dal network DHCP già inserito
+        if (( NUM_ROUTERS == 1 )); then
+            CLIENT_SUBNET_CIDR="${CLIENT_DHCP_NETWORK##*/}"
+        else
+            CLIENT_SUBNET_CIDR="${ROUTER_DHCP_CLIENT_NETWORK[1]##*/}"
+        fi
+        CLIENT_SUBNET_MASK="$(cidr_to_netmask "$CLIENT_SUBNET_CIDR")"
     else
         collect_static_nodes "client" "WKS" CLIENT_IPS CLIENT_NETS CLIENT_IFACES CLIENT_IFACE_IDS
+        # Chiedi la subnet per la rete dei client (necessaria per i file di interfaccia)
+        _collect_subnet "client" CLIENT_SUBNET_CIDR CLIENT_SUBNET_MASK
     fi
     
     SERVER_NET_MODE=$(prompt_net_mode "server")
@@ -95,8 +104,17 @@ run_interactive_wizard() {
         else
             collect_dhcp_per_router "server" ROUTER_DHCP_SERVER_NETWORK ROUTER_DHCP_SERVER_NET_ADDR ROUTER_DHCP_SERVER_RANGE_START ROUTER_DHCP_SERVER_RANGE_END
         fi
+        # Ricava la subnet CIDR dal network DHCP già inserito
+        if (( NUM_ROUTERS == 1 )); then
+            SERVER_SUBNET_CIDR="${SERVER_DHCP_NETWORK##*/}"
+        else
+            SERVER_SUBNET_CIDR="${ROUTER_DHCP_SERVER_NETWORK[1]##*/}"
+        fi
+        SERVER_SUBNET_MASK="$(cidr_to_netmask "$SERVER_SUBNET_CIDR")"
     else
         collect_static_nodes "server" "SRV" SERVER_IPS SERVER_NETS SERVER_IFACES SERVER_IFACE_IDS
+        # Chiedi la subnet per la rete dei server (necessaria per i file di interfaccia)
+        _collect_subnet "server" SERVER_SUBNET_CIDR SERVER_SUBNET_MASK
     fi
     
     collect_ssh_passwordless_config
