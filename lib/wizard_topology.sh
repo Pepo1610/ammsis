@@ -92,7 +92,7 @@ collect_routers() {
         nets_ref+=("$r_nets")
         ifaces_ref+=("$num_ifaces")
         ids_ref+=("$r_ids")
-        (( _COLLECT_COUNT++ ))
+        (( ++_COLLECT_COUNT ))
     done
 }
 
@@ -171,7 +171,7 @@ collect_static_nodes() {
         nets_ref+=("$r_nets")
         ifaces_ref+=("$num_ifaces")
         ids_ref+=("$r_ids")
-        (( _COLLECT_COUNT++ ))
+        (( ++_COLLECT_COUNT ))
     done
 }
 
