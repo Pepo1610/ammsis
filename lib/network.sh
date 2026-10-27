@@ -10,8 +10,11 @@
 # ---------------------------------------------------------------------------
 
 cidr_to_netmask() {
-    local cidr="$1"
-    echo "${CIDR_TO_NETMASK[$cidr]}"
+    local cidr="${1:-24}"
+    if (( ${#CIDR_TO_NETMASK[@]} == 0 )); then
+        _init_cidr_map
+    fi
+    echo "${CIDR_TO_NETMASK[$cidr]:-255.255.255.0}"
 }
 
 # ---------------------------------------------------------------------------
@@ -24,7 +27,7 @@ cidr_to_netmask() {
 
 calculate_network_address() {
     local ip="$1"
-    local cidr="$2"
+    local cidr="${2:-24}"
 
     local -a octets
     IFS='.' read -ra octets <<< "$ip"
@@ -41,6 +44,44 @@ calculate_network_address() {
     local net_int=$(( ip_int & mask_int ))
 
     echo "$(( (net_int >> 24) & 0xFF )).$(( (net_int >> 16) & 0xFF )).$(( (net_int >> 8) & 0xFF )).$(( net_int & 0xFF ))"
+}
+
+# ---------------------------------------------------------------------------
+# Normalizza e garantisce la presenza di subnet CIDR e Netmask per reti
+# client e server, sia dopo il wizard sia dopo il caricamento da file.
+# ---------------------------------------------------------------------------
+normalize_network_config() {
+    if (( ${#CIDR_TO_NETMASK[@]} == 0 )); then
+        _init_cidr_map
+    fi
+
+    # Subnet Client
+    if [[ -z "${CLIENT_SUBNET_CIDR:-}" ]]; then
+        if [[ -n "${CLIENT_DHCP_NETWORK:-}" ]]; then
+            CLIENT_SUBNET_CIDR="${CLIENT_DHCP_NETWORK##*/}"
+        elif (( ${#ROUTER_DHCP_CLIENT_NETWORK[@]} > 0 )) && [[ -n "${ROUTER_DHCP_CLIENT_NETWORK[1]:-}" ]]; then
+            CLIENT_SUBNET_CIDR="${ROUTER_DHCP_CLIENT_NETWORK[1]##*/}"
+        else
+            CLIENT_SUBNET_CIDR="24"
+        fi
+    fi
+    if [[ -z "${CLIENT_SUBNET_MASK:-}" ]]; then
+        CLIENT_SUBNET_MASK="$(cidr_to_netmask "$CLIENT_SUBNET_CIDR")"
+    fi
+
+    # Subnet Server
+    if [[ -z "${SERVER_SUBNET_CIDR:-}" ]]; then
+        if [[ -n "${SERVER_DHCP_NETWORK:-}" ]]; then
+            SERVER_SUBNET_CIDR="${SERVER_DHCP_NETWORK##*/}"
+        elif (( ${#ROUTER_DHCP_SERVER_NETWORK[@]} > 0 )) && [[ -n "${ROUTER_DHCP_SERVER_NETWORK[1]:-}" ]]; then
+            SERVER_SUBNET_CIDR="${ROUTER_DHCP_SERVER_NETWORK[1]##*/}"
+        else
+            SERVER_SUBNET_CIDR="24"
+        fi
+    fi
+    if [[ -z "${SERVER_SUBNET_MASK:-}" ]]; then
+        SERVER_SUBNET_MASK="$(cidr_to_netmask "$SERVER_SUBNET_CIDR")"
+    fi
 }
 
 # ---------------------------------------------------------------------------

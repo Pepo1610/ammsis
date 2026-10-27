@@ -18,6 +18,9 @@ run_setup() {
         save_choices "scelte.txt"
     fi
 
+    # Assicura che le subnet CIDR e netmask siano sempre definite e consistenti
+    normalize_network_config
+
     # Fase 2: Generazione del Vagrantfile
     generate_vagrantfile
 

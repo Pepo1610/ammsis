@@ -107,17 +107,19 @@ EOF
             local eth_ip="${ip_arr[$j]}"
             local eth_file="./roles/${role_name}/files/eth${eth_num}"
 
-            # Determina la netmask: se questa interfaccia è sulla rete client
-            # usiamo CLIENT_SUBNET_MASK, altrimenti SERVER_SUBNET_MASK
-            # Euristica: se è la prima interfaccia (tipicamente eth1 = rete client),
-            # se è la seconda (eth2 = rete server), etc.
-            # Meglio: per il router determiniamo la netmask in base alla posizione
-            local netmask
-            if (( j == 0 )); then
+            # Determina la netmask associando il segmento intnet alla rete corretta
+            local netmask=""
+            local iface_net="${net_arr[$j]:-}"
+            if [[ -n "${CLIENT_NETS[0]:-}" && "$iface_net" == "${CLIENT_NETS[0]}" ]]; then
+                netmask="$CLIENT_SUBNET_MASK"
+            elif [[ -n "${SERVER_NETS[0]:-}" && "$iface_net" == "${SERVER_NETS[0]}" ]]; then
+                netmask="$SERVER_SUBNET_MASK"
+            elif (( j == 0 )); then
                 netmask="$CLIENT_SUBNET_MASK"
             else
                 netmask="$SERVER_SUBNET_MASK"
             fi
+            netmask="${netmask:-${CLIENT_SUBNET_MASK:-255.255.255.0}}"
 
             cat > "$eth_file" <<ETHEOF
 auto eth${eth_num}
@@ -652,21 +654,21 @@ ETHEOF
                     IFS=';' read -ra c_ip_arr <<< "${CLIENT_IPS[0]}"
                     # Calcola l'indirizzo di rete corretto via bitwise AND
                     local c_net_prefix
-                    c_net_prefix=$(calculate_network_address "${c_ip_arr[0]}" "$CLIENT_SUBNET_CIDR")
-                    client_net_route="${c_net_prefix}/${CLIENT_SUBNET_CIDR}"
+                    c_net_prefix=$(calculate_network_address "${c_ip_arr[0]}" "${CLIENT_SUBNET_CIDR:-24}")
+                    client_net_route="${c_net_prefix}/${CLIENT_SUBNET_CIDR:-24}"
                 fi
 
                 {
                     echo "auto eth${eth_num}"
                     echo "iface eth${eth_num} inet static"
                     echo "    address ${eth_ip}"
-                    echo "    netmask ${SERVER_SUBNET_MASK}"
+                    echo "    netmask ${SERVER_SUBNET_MASK:-255.255.255.0}"
                     if [[ -n "$client_net_route" ]] && [[ -n "$router_gw_ip" ]]; then
                         echo "    up ip r add ${client_net_route} via ${router_gw_ip}"
                     fi
                 } > "$eth_file"
 
-                log_info "    Configurato: ${role_name}/files/eth${eth_num} → ${eth_ip}/${SERVER_SUBNET_MASK}"
+                log_info "    Configurato: ${role_name}/files/eth${eth_num} → ${eth_ip}/${SERVER_SUBNET_MASK:-255.255.255.0}"
 
                 if [[ -z "$eth_list" ]]; then
                     eth_list="eth${eth_num}"
@@ -1002,21 +1004,21 @@ DHCPEOF
                     IFS=';' read -ra s_ip_arr <<< "${SERVER_IPS[0]}"
                     # Calcola l'indirizzo di rete corretto via bitwise AND
                     local s_net_prefix
-                    s_net_prefix=$(calculate_network_address "${s_ip_arr[0]}" "$SERVER_SUBNET_CIDR")
-                    server_net_route="${s_net_prefix}/${SERVER_SUBNET_CIDR}"
+                    s_net_prefix=$(calculate_network_address "${s_ip_arr[0]}" "${SERVER_SUBNET_CIDR:-24}")
+                    server_net_route="${s_net_prefix}/${SERVER_SUBNET_CIDR:-24}"
                 fi
 
                 {
                     echo "auto eth${eth_num}"
                     echo "iface eth${eth_num} inet static"
                     echo "    address ${eth_ip}"
-                    echo "    netmask ${CLIENT_SUBNET_MASK}"
+                    echo "    netmask ${CLIENT_SUBNET_MASK:-255.255.255.0}"
                     if [[ -n "$server_net_route" ]] && [[ -n "$router_gw_ip" ]]; then
                         echo "    up ip r add ${server_net_route} via ${router_gw_ip}"
                     fi
                 } > "$eth_file"
 
-                log_info "    Configurato: ${role_name}/files/eth${eth_num} → ${eth_ip}/${CLIENT_SUBNET_MASK}"
+                log_info "    Configurato: ${role_name}/files/eth${eth_num} → ${eth_ip}/${CLIENT_SUBNET_MASK:-255.255.255.0}"
 
                 if [[ -z "$eth_list" ]]; then
                     eth_list="eth${eth_num}"

@@ -22,7 +22,11 @@ generate_vagrantfile() {
         IFS=';' read -ra id_arr <<< "${ROUTER_IFACE_IDS[$i]}"
         topo_comment+="#   ROU$((i+1)) = Router"
         for (( j = 0; j < ${#ip_arr[@]}; j++ )); do
-            topo_comment+=" (${ip_arr[$j]}/${CLIENT_SUBNET_CIDR} su ${net_arr[$j]})"
+            local iface_cidr="${CLIENT_SUBNET_CIDR:-24}"
+            if [[ -n "${SERVER_NETS[0]:-}" && "${net_arr[$j]}" == "${SERVER_NETS[0]}" ]]; then
+                iface_cidr="${SERVER_SUBNET_CIDR:-24}"
+            fi
+            topo_comment+=" (${ip_arr[$j]}/${iface_cidr} su ${net_arr[$j]})"
         done
         topo_comment+="\n"
     done

@@ -86,8 +86,10 @@ run_interactive_wizard() {
         # Ricava la subnet CIDR dal network DHCP già inserito
         if (( NUM_ROUTERS == 1 )); then
             CLIENT_SUBNET_CIDR="${CLIENT_DHCP_NETWORK##*/}"
-        else
+        elif (( ${#ROUTER_DHCP_CLIENT_NETWORK[@]} > 0 )) && [[ -n "${ROUTER_DHCP_CLIENT_NETWORK[1]:-}" ]]; then
             CLIENT_SUBNET_CIDR="${ROUTER_DHCP_CLIENT_NETWORK[1]##*/}"
+        else
+            CLIENT_SUBNET_CIDR="24"
         fi
         CLIENT_SUBNET_MASK="$(cidr_to_netmask "$CLIENT_SUBNET_CIDR")"
     else
@@ -107,8 +109,10 @@ run_interactive_wizard() {
         # Ricava la subnet CIDR dal network DHCP già inserito
         if (( NUM_ROUTERS == 1 )); then
             SERVER_SUBNET_CIDR="${SERVER_DHCP_NETWORK##*/}"
-        else
+        elif (( ${#ROUTER_DHCP_SERVER_NETWORK[@]} > 0 )) && [[ -n "${ROUTER_DHCP_SERVER_NETWORK[1]:-}" ]]; then
             SERVER_SUBNET_CIDR="${ROUTER_DHCP_SERVER_NETWORK[1]##*/}"
+        else
+            SERVER_SUBNET_CIDR="24"
         fi
         SERVER_SUBNET_MASK="$(cidr_to_netmask "$SERVER_SUBNET_CIDR")"
     else
