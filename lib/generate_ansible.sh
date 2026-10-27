@@ -54,6 +54,24 @@ EOF
 }
 
 # ---------------------------------------------------------------------------
+# Configura l'handler "Restart Networking" con modalità asincrona per evitare
+# che la sessione SSH si blocchi durante il breve riavvio della scheda eth0.
+# ---------------------------------------------------------------------------
+_setup_networking_handler() {
+    local target_role="$1"
+    mkdir -p "./roles/${target_role}/handlers"
+    cat > "./roles/${target_role}/handlers/main.yml" <<'EOF'
+---
+- name: Restart Networking
+  ansible.builtin.service:
+    name: networking
+    state: restarted
+  async: 45
+  poll: 5
+EOF
+}
+
+# ---------------------------------------------------------------------------
 # Crea la struttura di directory e file per Ansible, copia i componenti
 # dalla cartella componenti/, e configura i file di rete con i dati
 # immessi dall'utente.
@@ -70,16 +88,26 @@ setup_ansible_environment() {
     # A) COPIA DEI COMPONENTI
     # ══════════════════════════════════════════════════════════════════
 
-    # --- Common (struttura vuota per fix auto eth0) ---
+    # --- Common (fix auto eth0) ---
     mkdir -p ./roles/common/tasks
     mkdir -p ./roles/common/handlers
     mkdir -p ./roles/common/files
     cat > ./roles/common/tasks/main.yml <<'EOF'
 ---
-# Ruolo common: fix auto eth0
-# Aggiungi qui eventuali configurazioni comuni a tutte le VM.
+# Ruolo common: fix auto eth0 per evitare che la VM perda connettività quando viene riavviata la rete
+- name: Sostituisci allow-hotplug eth0 con auto eth0 in /etc/network/interfaces
+  ansible.builtin.replace:
+    path: /etc/network/interfaces
+    regexp: '^allow-hotplug\s+eth0'
+    replace: 'auto eth0'
+
+- name: Assicura che auto eth0 sia presente in /etc/network/interfaces
+  ansible.builtin.lineinfile:
+    path: /etc/network/interfaces
+    line: 'auto eth0'
+    insertbefore: '^iface eth0 inet'
 EOF
-    log_info "  Creato ruolo: common (struttura vuota)"
+    log_info "  Creato ruolo: common (fix auto eth0 configurato)"
 
     # --- Proxy Lab (se abilitato) ---
     if [[ "$USE_PROXY_LAB" == true ]]; then
@@ -156,6 +184,7 @@ ETHEOF
             done
             echo "  notify: Restart Networking"
         } > "$task_file"
+        _setup_networking_handler "$role_name"
     done
 
     # --- DHCP Server ---
@@ -696,12 +725,14 @@ ETHEOF
                 done
                 echo "  notify: Restart Networking"
             } > "$task_file"
+            _setup_networking_handler "$role_name"
         done
     fi
 
     # --- DHCP Client (per i client, se DHCP) ---
     if [[ "$CLIENT_NET_MODE" == "dhcp" ]]; then
         copy_component "rete/net_dhcp_client" "net_dhcp_client"
+        _setup_networking_handler "net_dhcp_client"
 
         # Aggiorna l'interfaccia nel file se diversa da eth1
         if (( NUM_CLIENTS > 0 )); then
@@ -725,6 +756,7 @@ DHCPEOF
     if [[ "$SERVER_NET_MODE" == "dhcp" ]]; then
         # Crea un ruolo net_dhcp_client_server basato su net_dhcp_client
         copy_component "rete/net_dhcp_client" "net_dhcp_client_server"
+        _setup_networking_handler "net_dhcp_client_server"
 
         if (( NUM_SERVERS > 0 )); then
             local server_eth_id="${SERVER_IFACE_IDS[0]}"
@@ -1046,6 +1078,7 @@ DHCPEOF
                 done
                 echo "  notify: Restart Networking"
             } > "$task_file"
+            _setup_networking_handler "$role_name"
         done
     fi
 

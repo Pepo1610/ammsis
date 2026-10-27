@@ -79,6 +79,7 @@ generate_vagrantfile() {
         echo "  end"
         echo "  config.vm.provision \"ansible\" do |ansible|"
         echo "    ansible.playbook = \"site.yml\""
+        echo "    ansible.raw_arguments = [\"--ssh-common-args=-o ServerAliveInterval=5 -o ServerAliveCountMax=3 -o ConnectionAttempts=5\"]"
         echo "  end"
         echo ""
 
