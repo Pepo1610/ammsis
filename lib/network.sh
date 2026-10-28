@@ -111,6 +111,37 @@ calculate_last_usable_ip() {
 }
 
 # ---------------------------------------------------------------------------
+# Risolve l'indice dell'interfaccia Linux (es. 1 per eth1, 2 per eth2)
+# a partire dall'ID specificato (adapter Vagrant 2-8 o indice eth 1-7).
+#
+# In Vagrant / VirtualBox:
+#   Adapter 1 = eth0 (riservato per NAT / SSH)
+#   Adapter 2 = eth1 (prima interfaccia privata)
+#   Adapter 3 = eth2 (seconda interfaccia privata)
+#
+# Se raw_id >= 2 e la convenzione usata sul nodo è basata sui numeri adapter
+# (primo adapter >= 2), mappa adapter N a eth$((N - 1)).
+# Se l'utente ha inserito direttamente la numerazione eth (es. 1 per eth1),
+# mantiene il valore.
+# In assenza di ID, usa la posizione sequenziale (iface_idx + 1).
+# ---------------------------------------------------------------------------
+resolve_eth_num() {
+    local raw_id="${1:-}"
+    local iface_idx="${2:-0}"
+    local first_id="${3:-$raw_id}"
+
+    if [[ -z "$raw_id" ]]; then
+        echo "$(( iface_idx + 1 ))"
+    elif [[ "$raw_id" =~ ^[0-9]+$ ]] && [[ "$first_id" =~ ^[0-9]+$ ]] && (( first_id >= 2 )); then
+        echo "$(( raw_id - 1 ))"
+    elif [[ "$raw_id" =~ ^[0-9]+$ ]]; then
+        echo "$raw_id"
+    else
+        echo "$(( iface_idx + 1 ))"
+    fi
+}
+
+# ---------------------------------------------------------------------------
 # Calcola il primo indirizzo IP host usabile in una subnet (rete + 1)
 # Argomenti: $1 = indirizzo di rete (es. 172.21.64.0), $2 = prefisso CIDR
 # Stampa su stdout il primo IP host usabile (es. 172.21.64.1)

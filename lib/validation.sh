@@ -3,6 +3,16 @@
 #  Input validation utilities
 # =============================================================================
 
+if ! declare -F yaml_quote >/dev/null 2>&1; then
+    yaml_quote() {
+        local str="$1"
+        str="${str//\\/\\\\}"
+        str="${str//\"/\\\"}"
+        str="${str//$'\n'/\\n}"
+        echo "\"$str\""
+    }
+fi
+
 # ---------------------------------------------------------------------------
 # Validazione: controlla che una stringa sia un intero positivo
 # Argomenti: $1 = valore, $2 = nome campo (per messaggi di errore)

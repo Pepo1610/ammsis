@@ -66,8 +66,8 @@ _setup_networking_handler() {
   ansible.builtin.service:
     name: networking
     state: restarted
-  async: 45
-  poll: 5
+  async: 60
+  poll: 3
 EOF
 }
 
@@ -131,7 +131,8 @@ EOF
 
         local eth_list=""
         for (( j = 0; j < ${#ip_arr[@]}; j++ )); do
-            local eth_num="${id_arr[$j]}"
+            local eth_num
+            eth_num="$(resolve_eth_num "${id_arr[$j]:-}" "$j" "${id_arr[0]:-}")"
             local eth_ip="${ip_arr[$j]}"
             local eth_file="./roles/${role_name}/files/eth${eth_num}"
 
@@ -205,7 +206,9 @@ ETHEOF
 
                 # Pool DHCP client per questo router
                 if [[ "$CLIENT_NET_MODE" == "dhcp" ]] && (( ${#ROUTER_DHCP_CLIENT_NETWORK[@]} > 0 )); then
-                    local _c_eth="eth${_rou_ids[0]}"
+                    local _c_num
+                    _c_num="$(resolve_eth_num "${_rou_ids[0]:-}" 0 "${_rou_ids[0]:-}")"
+                    local _c_eth="eth${_c_num}"
                     echo "interface=${_c_eth}"
                     echo ""
                     echo "dhcp-range=${_c_eth},${ROUTER_DHCP_CLIENT_RANGE_START[$i]},${ROUTER_DHCP_CLIENT_RANGE_END[$i]},${CLIENT_SUBNET_MASK},12h"
@@ -236,7 +239,9 @@ ETHEOF
 
                 # Pool DHCP server per questo router
                 if [[ "$SERVER_NET_MODE" == "dhcp" ]] && (( ${#_rou_ids[@]} > 1 )) && (( ${#ROUTER_DHCP_SERVER_NETWORK[@]} > 0 )); then
-                    local _s_eth="eth${_rou_ids[1]}"
+                    local _s_num
+                    _s_num="$(resolve_eth_num "${_rou_ids[1]:-}" 1 "${_rou_ids[0]:-}")"
+                    local _s_eth="eth${_s_num}"
                     echo "interface=${_s_eth}"
                     echo ""
                     echo "dhcp-range=${_s_eth},${ROUTER_DHCP_SERVER_RANGE_START[$i]},${ROUTER_DHCP_SERVER_RANGE_END[$i]},${SERVER_SUBNET_MASK},12h"
@@ -269,7 +274,9 @@ ETHEOF
             IFS=';' read -ra rou1_ips <<< "${ROUTER_IPS[0]}"
 
             if [[ "$CLIENT_NET_MODE" == "dhcp" ]]; then
-                local client_eth="eth${rou1_ids[0]}"
+                local _c_num
+                _c_num="$(resolve_eth_num "${rou1_ids[0]:-}" 0 "${rou1_ids[0]:-}")"
+                local client_eth="eth${_c_num}"
                 echo "interface=${client_eth}"
                 echo ""
                 echo "dhcp-range=${client_eth},${CLIENT_DHCP_RANGE_START},${CLIENT_DHCP_RANGE_END},${CLIENT_SUBNET_MASK},12h"
@@ -305,7 +312,9 @@ ETHEOF
 
             # Anche il DHCP per i server, se richiesto
             if [[ "$SERVER_NET_MODE" == "dhcp" ]] && (( ${#rou1_ids[@]} > 1 )); then
-                local server_eth="eth${rou1_ids[1]}"
+                local _s_num
+                _s_num="$(resolve_eth_num "${rou1_ids[1]:-}" 1 "${rou1_ids[0]:-}")"
+                local server_eth="eth${_s_num}"
                 echo "interface=${server_eth}"
                 echo ""
                 echo "dhcp-range=${server_eth},${SERVER_DHCP_RANGE_START},${SERVER_DHCP_RANGE_END},${SERVER_SUBNET_MASK},12h"
@@ -655,7 +664,8 @@ ETHEOF
 
             local eth_list=""
             for (( j = 0; j < ${#srv_ip_arr[@]}; j++ )); do
-                local eth_num="${srv_id_arr[$j]}"
+                local eth_num
+                eth_num="$(resolve_eth_num "${srv_id_arr[$j]:-}" "$j" "${srv_id_arr[0]:-}")"
                 local eth_ip="${srv_ip_arr[$j]}"
                 local eth_file="./roles/${role_name}/files/eth${eth_num}"
 
@@ -736,7 +746,8 @@ ETHEOF
 
         # Aggiorna l'interfaccia nel file se diversa da eth1
         if (( NUM_CLIENTS > 0 )); then
-            local client_eth_id="${CLIENT_IFACE_IDS[0]}"
+            local client_eth_id
+            client_eth_id="$(resolve_eth_num "${CLIENT_IFACE_IDS[0]:-}" 0 "${CLIENT_IFACE_IDS[0]:-}")"
             if [[ "$client_eth_id" != "1" ]]; then
                 local dhcp_client_file="./roles/net_dhcp_client/files/eth1dhcp"
                 local new_dhcp_file="./roles/net_dhcp_client/files/eth${client_eth_id}dhcp"
@@ -759,7 +770,8 @@ DHCPEOF
         _setup_networking_handler "net_dhcp_client_server"
 
         if (( NUM_SERVERS > 0 )); then
-            local server_eth_id="${SERVER_IFACE_IDS[0]}"
+            local server_eth_id
+            server_eth_id="$(resolve_eth_num "${SERVER_IFACE_IDS[0]:-}" 0 "${SERVER_IFACE_IDS[0]:-}")"
             local dhcp_srv_file="./roles/net_dhcp_client_server/files/eth1dhcp"
             local new_dhcp_srv_file="./roles/net_dhcp_client_server/files/eth${server_eth_id}dhcp"
 
@@ -1009,7 +1021,8 @@ DHCPEOF
 
             local eth_list=""
             for (( j = 0; j < ${#cli_ip_arr[@]}; j++ )); do
-                local eth_num="${cli_id_arr[$j]}"
+                local eth_num
+                eth_num="$(resolve_eth_num "${cli_id_arr[$j]:-}" "$j" "${cli_id_arr[0]:-}")"
                 local eth_ip="${cli_ip_arr[$j]}"
                 local eth_file="./roles/${role_name}/files/eth${eth_num}"
 
