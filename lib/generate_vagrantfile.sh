@@ -76,6 +76,7 @@ generate_vagrantfile() {
         echo "  config.vm.box = \"${DEFAULT_BOX}\""
         echo "  config.vm.provider \"virtualbox\" do |vb|"
         echo "    vb.linked_clone = true"
+        echo "    vb.customize [\"modifyvm\", :id, \"--natdnshostresolver1\", \"on\"]"
         echo "  end"
         echo "  config.vm.provision \"ansible\" do |ansible|"
         echo "    ansible.playbook = \"site.yml\""

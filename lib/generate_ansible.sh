@@ -88,13 +88,14 @@ setup_ansible_environment() {
     # A) COPIA DEI COMPONENTI
     # ══════════════════════════════════════════════════════════════════
 
-    # --- Common (fix auto eth0) ---
+    # --- Common (fix auto eth0 e configurazioni base VM) ---
     mkdir -p ./roles/common/tasks
     mkdir -p ./roles/common/handlers
     mkdir -p ./roles/common/files
     cat > ./roles/common/tasks/main.yml <<'EOF'
 ---
-# Ruolo common: fix auto eth0 per evitare che la VM perda connettività quando viene riavviata la rete
+# Ruolo common: fix di rete e configurazione APT comune a tutte le VM
+
 - name: Sostituisci allow-hotplug eth0 con auto eth0 in /etc/network/interfaces
   ansible.builtin.replace:
     path: /etc/network/interfaces
@@ -106,8 +107,122 @@ setup_ansible_environment() {
     path: /etc/network/interfaces
     line: 'auto eth0'
     insertbefore: '^iface eth0 inet'
+
+- name: Configura opzioni APT per IPv4, timeout e modalita non interattiva
+  ansible.builtin.copy:
+    dest: /etc/apt/apt.conf.d/99force-ipv4
+    content: |
+      Acquire::ForceIPv4 "true";
+      Acquire::http::Timeout "30";
+      Acquire::https::Timeout "30";
+      Acquire::Retries "3";
+      DPkg::Options {
+        "--force-confdef";
+        "--force-confold";
+      };
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Disabilita IPv6 a livello di sistema per evitare buchi neri di routing in VirtualBox NAT
+  ansible.builtin.copy:
+    dest: /etc/sysctl.d/99-disable-ipv6.conf
+    content: |
+      net.ipv6.conf.all.disable_ipv6 = 1
+      net.ipv6.conf.default.disable_ipv6 = 1
+      net.ipv6.conf.lo.disable_ipv6 = 1
+    owner: root
+    group: root
+    mode: '0644'
+  failed_when: false
+
+- name: Applica configurazione sysctl
+  ansible.builtin.command:
+    cmd: sysctl --system
+  changed_when: false
+  failed_when: false
+
+- name: Disabilita e ferma i servizi e timer di apt-daily per evitare lock concorrenti su dpkg
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    state: stopped
+    enabled: false
+  loop:
+    - apt-daily.timer
+    - apt-daily-upgrade.timer
+    - apt-daily.service
+    - apt-daily-upgrade.service
+  failed_when: false
+
+- name: Uccidi eventuali processi apt o dpkg in background che tengono lock
+  ansible.builtin.shell: |
+    pkill -9 -f apt.systemd.daily 2>/dev/null || true
+    pkill -9 -f unattended-upgrade 2>/dev/null || true
+    pkill -9 -f 'apt-get' 2>/dev/null || true
+    pkill -9 -f 'aptitude' 2>/dev/null || true
+    pkill -9 -f 'dpkg' 2>/dev/null || true
+    rm -f /var/lib/apt/lists/lock /var/cache/apt/archives/lock /var/lib/dpkg/lock* 2>/dev/null || true
+    dpkg --configure -a 2>/dev/null || true
+  changed_when: false
+  failed_when: false
+
+- name: Imposta DEBIAN_FRONTEND noninteractive in /etc/environment
+  ansible.builtin.lineinfile:
+    path: /etc/environment
+    line: 'DEBIAN_FRONTEND=noninteractive'
+    state: present
+  failed_when: false
+
+- name: Assicura che la directory /etc/needrestart/conf.d esista
+  ansible.builtin.file:
+    path: /etc/needrestart/conf.d
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+  failed_when: false
+
+- name: Configura needrestart in modalita automatica non interattiva
+  ansible.builtin.copy:
+    dest: /etc/needrestart/conf.d/99-noninteractive.conf
+    content: |
+      $nrconf{restart} = 'a';
+      $nrconf{ui} = 'NeedRestart::UI::stdio';
+    owner: root
+    group: root
+    mode: '0644'
+  failed_when: false
+
+- name: Assicura server DNS affidabili in cima a /etc/resolv.conf
+  ansible.builtin.lineinfile:
+    path: /etc/resolv.conf
+    line: "{{ item }}"
+    insertbefore: BOF
+    state: present
+  loop:
+    - "nameserver 1.1.1.1"
+    - "nameserver 8.8.8.8"
+  failed_when: false
+
+- name: Configura server DNS affidabili in dhclient.conf
+  ansible.builtin.lineinfile:
+    path: /etc/dhcp/dhclient.conf
+    line: 'prepend domain-name-servers 8.8.8.8, 1.1.1.1;'
+    create: true
+    state: present
+  failed_when: false
+
+- name: Aggiorna la cache di APT in modo sicuro con lock_timeout
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+    lock_timeout: 120
+  register: apt_common_update
+  retries: 3
+  delay: 5
+  until: apt_common_update is success
 EOF
-    log_info "  Creato ruolo: common (fix auto eth0 configurato)"
+    log_info "  Creato ruolo: common (fix auto eth0 e ottimizzazioni APT)"
 
     # --- Proxy Lab (se abilitato) ---
     if [[ "$USE_PROXY_LAB" == true ]]; then
@@ -1203,21 +1318,21 @@ DHCPEOF
             done
         fi
 
-        # ── Play: tutti i client ──
-        echo ""
-        echo "- name: Client - configurazione"
-        local wks_hosts=""
-        for (( i = 1; i <= NUM_CLIENTS; i++ )); do
-            if [[ -z "$wks_hosts" ]]; then
-                wks_hosts="WKS${i}"
-            else
-                wks_hosts="${wks_hosts}:WKS${i}"
-            fi
-        done
-        echo "  hosts: ${wks_hosts}"
-        echo "  become: true"
-        echo "  roles:"
+        # ── Play: client DHCP (se richiesto) ──
         if [[ "$CLIENT_NET_MODE" == "dhcp" ]]; then
+            echo ""
+            echo "- name: Client DHCP - configurazione"
+            local wks_hosts=""
+            for (( i = 1; i <= NUM_CLIENTS; i++ )); do
+                if [[ -z "$wks_hosts" ]]; then
+                    wks_hosts="WKS${i}"
+                else
+                    wks_hosts="${wks_hosts}:WKS${i}"
+                fi
+            done
+            echo "  hosts: ${wks_hosts}"
+            echo "  become: true"
+            echo "  roles:"
             echo "    - net_dhcp_client"
         fi
 
